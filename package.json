@@ -1,0 +1,16 @@
+{
+  "name": "ids-basecamp",
+  "version": "1.0.0",
+  "description": "A source for all necessary information and resources to start experimenting with a dataspace",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "D.Hommen",
+  "license": "CC-BY-4.0 license",
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "semantic-release": "^21.0.7"
+  }
+}
