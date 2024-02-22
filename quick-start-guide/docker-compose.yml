@@ -3,17 +3,24 @@ version: "3.9"
 services:
   postgresql:
     image: postgres:14-alpine
+    container_name: postgresql
     environment:
-      POSTGRES_USER: $POSTGRES_USER
-      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_MULTIPLE_DATABASES: connector1, connector2, broker
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     volumes:
-      - ./resources/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./resources/sql/multiple-databases.sh:/docker-entrypoint-initdb.d/multiple-databases.sh
 
   broker:
     image: ghcr.io/ids-basecamp/broker:v1.0.0-basecamp
-    restart: always
     depends_on:
-      - postgresql
+      postgresql:
+        condition: service_healthy
     environment:
       WEB_HTTP_PORT: 13001
       WEB_HTTP_PATH: /api
@@ -55,10 +62,13 @@ services:
       EDC_CATALOG_CACHE_PARTITION_NUM_CRAWLERS: 60
     volumes:
       - ./resources:/resources
+    ports:
+      - "5001:9191"
 
   connector_1:
     depends_on:
-      - postgresql
+      postgresql:
+        condition: service_healthy
     image: ghcr.io/ids-basecamp/connector:v1.0.0-basecamp
     environment:
       WEB_HTTP_PORT: 9191
@@ -130,7 +140,8 @@ services:
 
   connector_2:
     depends_on:
-      - postgresql
+      postgresql:
+        condition: service_healthy
     image: ghcr.io/ids-basecamp/connector:v1.0.0-basecamp
     environment:
       WEB_HTTP_PORT: 9191
@@ -199,3 +210,30 @@ services:
       - "9006:9192"
       - "9007:9292"
       - "9008:9293"
+
+  clearing-house-edc:
+    image: ghcr.io/ids-basecamp/clearinghouse/ch-edc:1.0.0-beta.2
+    environment:
+      WEB_HTTP_PORT: 7171
+      WEB_HTTP_PATH: /api
+      WEB_HTTP_PROTOCOL_PORT: 7272
+      WEB_HTTP_PROTOCOL_PATH: /protocol
+
+      EDC_VAULT: /resources/vault.properties
+      EDC_KEYSTORE: /resources/broker.jks
+      EDC_KEYSTORE_PASSWORD: password
+
+      EDC_OAUTH_CERTIFICATE_ALIAS: 1
+      EDC_OAUTH_PRIVATE_KEY_ALIAS: 1
+      EDC_OAUTH_CLIENT_ID: 18:10:72:F0:2D:07:10:94:C4:16:93:21:54:15:09:46:20:B1:F2:E2:5B:57:F7:61:16:B2:B0:13:49:59:70:34:45:44:90:51:24:4A:1C:09
+      EDC_OAUTH_TOKEN_URL: http://85.215.159.70:4567/token
+      EDC_OAUTH_PROVIDER_JWKS_URL: http://85.215.159.70:4567/jwks.json
+      EDC_OAUTH_PROVIDER_AUDIENCE: IDSC:IDS_CONNECTORS_ALL
+
+      TRUZZT_CLEARINGHOUSE_JWT_AUDIENCE: 1
+      TRUZZT_CLEARINGHOUSE_JWT_ISSUER: 1
+      TRUZZT_CLEARINGHOUSE_JWT_SIGN.SECRET: 123
+      TRUZZT_CLEARINGHOUSE_JWT_EXPIRES_AT: 30
+      TRUZZT_CLEARINGHOUSE_APP_BASE_URL: http://localhost:8000
+    volumes:
+      - ./resources:/resources
