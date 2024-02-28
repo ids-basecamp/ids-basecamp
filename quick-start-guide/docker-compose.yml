@@ -67,7 +67,7 @@ services:
     depends_on:
       postgresql:
         condition: service_healthy
-    image: ghcr.io/ids-basecamp/connector:v1.0.0-basecamp
+    image: ghcr.io/ids-basecamp/connector:v1.0.1-basecamp
     environment:
       WEB_HTTP_PORT: 9191
       WEB_HTTP_PATH: /api
@@ -125,6 +125,8 @@ services:
       EDC_OAUTH_PROVIDER_JWKS_URL: $DAPS_URL/jwks.json
       EDC_OAUTH_PROVIDER_AUDIENCE: idsc:IDS_CONNECTORS_ALL
 
+      IDS_WEBHOOK_ADDRESS: http://connector_1:9293
+
       EDC_KEYSTORE: /resources/connector-1.demo.ids-basecamp.local.jks
       EDC_KEYSTORE_PASSWORD: password
       EDC_VAULT: /resources/vault.properties
@@ -140,7 +142,7 @@ services:
     depends_on:
       postgresql:
         condition: service_healthy
-    image: ghcr.io/ids-basecamp/connector:v1.0.0-basecamp
+    image: ghcr.io/ids-basecamp/connector:v1.0.1-basecamp
     environment:
       WEB_HTTP_PORT: 9191
       WEB_HTTP_PATH: /api
@@ -197,6 +199,8 @@ services:
       EDC_OAUTH_TOKEN_URL: http://85.215.159.70:4568/token
       EDC_OAUTH_PROVIDER_JWKS_URL: http://85.215.159.70:4568/jwks.json
       EDC_OAUTH_PROVIDER_AUDIENCE: idsc:IDS_CONNECTORS_ALL
+
+      IDS_WEBHOOK_ADDRESS: http://connector_2:9293
 
       EDC_KEYSTORE: /resources/connector-2.demo.ids-basecamp.local.jks
       EDC_KEYSTORE_PASSWORD: password
