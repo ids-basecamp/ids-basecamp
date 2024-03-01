@@ -32,7 +32,7 @@ services:
         postgresql:
           condition: service_healthy
     environment:
-      SERVICE_ID_LOG: 1
+      SERVICE_ID_LOG: $CH_APP_SERVICE_LOG
       SHARED_SECRET: $JWT_SIGN_SECRET
       SIGNING_KEY: /app/keys/private_key.der
       CH_APP_DATABASE_URL: "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgresql:5432/clearing_house"
@@ -63,10 +63,10 @@ services:
       EDC_OAUTH_PROVIDER_JWKS_URL: http://daps:4567/jwks.json
       EDC_OAUTH_PROVIDER_AUDIENCE: IDSC:IDS_CONNECTORS_ALL
 
-      TRUZZT_CLEARINGHOUSE_JWT_AUDIENCE: 1
-      TRUZZT_CLEARINGHOUSE_JWT_ISSUER: 1
+      TRUZZT_CLEARINGHOUSE_JWT_AUDIENCE: $JWT_AUDIENCE
+      TRUZZT_CLEARINGHOUSE_JWT_ISSUER: $JWT_ISSUER
       TRUZZT_CLEARINGHOUSE_JWT_SIGN.SECRET: $JWT_SIGN_SECRET
-      TRUZZT_CLEARINGHOUSE_JWT_EXPIRES_AT: 30
+      TRUZZT_CLEARINGHOUSE_JWT_EXPIRES_AT: $JWT_EXPIRES_AT
       TRUZZT_CLEARINGHOUSE_APP_BASE_URL: http://clearing_house_app:8000
     volumes:
       - ./resources/clearing-house-edc:/resources
@@ -90,9 +90,6 @@ services:
       IDS_WEBHOOK_ADDRESS: http://broker:9293
 
       EDC_API_AUTH_KEY: $API_AUTH_KEY
-      EDC_WEB_REST_CORS_ENABLED: 'true'
-      EDC_WEB_REST_CORS_HEADERS: 'origin,content-type,accept,authorization,x-api-key'
-      EDC_WEB_REST_CORS_ORIGINS: '*'
 
       EDC_FLYWAY_REPAIR: 'false'
       EDC_DATASOURCE_DEFAULT_URL: jdbc:postgresql://postgresql:5432/broker
@@ -110,9 +107,9 @@ services:
       EDC_OAUTH_PROVIDER_JWKS_URL: http://daps:4567/jwks.json
       EDC_OAUTH_PROVIDER_AUDIENCE: idsc:IDS_CONNECTORS_ALL
 
-      EDC_CATALOG_CACHE_EXECUTION_DELAY_SECONDS: 5
-      EDC_CATALOG_CACHE_EXECUTION_PERIOD_SECONDS: 5
-      EDC_CATALOG_CACHE_PARTITION_NUM_CRAWLERS: 60
+      EDC_CATALOG_CACHE_EXECUTION_DELAY_SECONDS: $BROKER_DELAY_SECONDS
+      EDC_CATALOG_CACHE_EXECUTION_PERIOD_SECONDS: $BROKER_PERIOD_SECONDS
+      EDC_CATALOG_CACHE_PARTITION_NUM_CRAWLERS: $BROKER_NUM_CRAWLERS
     volumes:
       - ./resources/broker:/resources
 
@@ -139,9 +136,6 @@ services:
       IDS_WEBHOOK_ADDRESS: http://connector_1:9293
 
       EDC_API_AUTH_KEY: $API_AUTH_KEY
-      EDC_WEB_REST_CORS_ENABLED: 'true'
-      EDC_WEB_REST_CORS_HEADERS: 'origin,content-type,accept,authorization,x-api-key'
-      EDC_WEB_REST_CORS_ORIGINS: '*'
 
       EDC_HOSTNAME: connector_1:9293
       EDC_IDS_ID: urn:connector:ids-basecamp-demo-connector-1
@@ -227,9 +221,6 @@ services:
       IDS_WEBHOOK_ADDRESS: http://connector_2:9293
 
       EDC_API_AUTH_KEY: $API_AUTH_KEY
-      EDC_WEB_REST_CORS_ENABLED: 'true'
-      EDC_WEB_REST_CORS_HEADERS: 'origin,content-type,accept,authorization,x-api-key'
-      EDC_WEB_REST_CORS_ORIGINS: '*'
 
       EDC_HOSTNAME: connector_2:9293
       EDC_IDS_ID: urn:connector:ids-basecamp-demo-connector-2
