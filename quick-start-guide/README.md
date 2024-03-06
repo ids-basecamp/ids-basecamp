@@ -16,10 +16,14 @@
 
 - Clone the [ids-basecamp](https://github.com/ids-basecamp/ids-basecamp) repository
 - Go to quick-start-guide directory
-- To download the environment run this code below
-> docker-compose down
-- To run the docker image use this code below
+
+- To start the environment run the code below:
+
 > docker-compose -p ids-basecamp up -d
+
+- To shutdown the environment run the code below:
+
+> docker-compose down
 
 ## About the containers
 
