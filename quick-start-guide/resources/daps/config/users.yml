@@ -1,0 +1,7 @@
+---
+- username: admin
+  attributes:
+  - key: omejdn
+    value: admin
+  password: "$2a$12$c/xiTliVEAgQ.uK8NkpEa.rdO5W2Qm2i3LKGiNEbn9xhS/wwlu4Ey"
+  backend: yaml

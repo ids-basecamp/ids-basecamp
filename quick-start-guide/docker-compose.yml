@@ -1,0 +1,284 @@
+version: "3"
+
+services:
+  postgresql:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      POSTGRES_DB: postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 1s
+    volumes:
+      - ./resources/postgresql/create-databases.sh:/docker-entrypoint-initdb.d/create-databases.sh
+    ports:
+      - "$POSTGRES_PORT:5432"
+
+  daps:
+    image: ghcr.io/ids-basecamp/daps:v1.0.0-basecamp
+    environment:
+      - OMEJDN_OPENID=true
+      - OMEJDN_ACCEPT_AUDIENCE=idsc:IDS_CONNECTORS_ALL
+      - OMEJDN_DEFAULT_AUDIENCE=idsc:IDS_CONNECTORS_ALL
+      - OMEJDN_ADMIN=admin:changethis
+    volumes:
+      - ./resources/daps/config/:/opt/config
+      - ./resources/daps/keys:/opt/keys
+
+  clearing_house_app:
+    image: ghcr.io/ids-basecamp/clearinghouse/ch-app:1.0.0-beta.4
+    depends_on:
+        postgresql:
+          condition: service_healthy
+    environment:
+      SERVICE_ID_LOG: $CH_APP_SERVICE_LOG
+      SHARED_SECRET: $JWT_SIGN_SECRET
+      SIGNING_KEY: /app/keys/private_key.der
+      CH_APP_DATABASE_URL: "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgresql:5432/clearing_house"
+      CH_APP_CLEAR_DB: "false"
+      CH_APP_LOG_LEVEL: "INFO"
+    volumes:
+      - ./resources/clearing-house-app/private_key.der:/app/keys/private_key.der
+
+  clearing_house_edc:
+    image: ghcr.io/ids-basecamp/clearinghouse/ch-edc:1.0.0-beta.4
+    depends_on:
+      clearing_house_app:
+        condition: service_started
+      daps:
+        condition: service_started
+    environment:
+      WEB_HTTP_PORT: 9191
+      WEB_HTTP_PATH: /api
+
+      EDC_VAULT: /resources/vault.properties
+      EDC_KEYSTORE: /resources/keystore.jks
+      EDC_KEYSTORE_PASSWORD: $KEYSTORE_PASSWORD
+
+      EDC_OAUTH_CERTIFICATE_ALIAS: $KEYSTORE_CERTIFICATE
+      EDC_OAUTH_PRIVATE_KEY_ALIAS: $KEYSTORE_PRIVATE_KEY
+      EDC_OAUTH_CLIENT_ID: $CH_EDC_CLIENT_ID
+      EDC_OAUTH_TOKEN_URL: http://daps:4567/token
+      EDC_OAUTH_PROVIDER_JWKS_URL: http://daps:4567/jwks.json
+      EDC_OAUTH_PROVIDER_AUDIENCE: IDSC:IDS_CONNECTORS_ALL
+
+      TRUZZT_CLEARINGHOUSE_JWT_AUDIENCE: $JWT_AUDIENCE
+      TRUZZT_CLEARINGHOUSE_JWT_ISSUER: $JWT_ISSUER
+      TRUZZT_CLEARINGHOUSE_JWT_SIGN.SECRET: $JWT_SIGN_SECRET
+      TRUZZT_CLEARINGHOUSE_JWT_EXPIRES_AT: $JWT_EXPIRES_AT
+      TRUZZT_CLEARINGHOUSE_APP_BASE_URL: http://clearing_house_app:8000
+    volumes:
+      - ./resources/clearing-house-edc:/resources
+
+  broker:
+    image: ghcr.io/ids-basecamp/broker:v1.0.2-basecamp
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      daps:
+        condition: service_started
+    environment:
+      WEB_HTTP_PORT: 9191
+      WEB_HTTP_PATH: /api
+      WEB_HTTP_MANAGEMENT_PORT: 9192
+      WEB_HTTP_MANAGEMENT_PATH: /
+      WEB_HTTP_DATA_PORT: 9292
+      WEB_HTTP_DATA_PATH: /api/v1/data
+      WEB_HTTP_IDS_PORT: 9293
+      WEB_HTTP_IDS_PATH: /api/v1/ids
+      IDS_WEBHOOK_ADDRESS: http://broker:9293
+
+      EDC_API_AUTH_KEY: $API_AUTH_KEY
+
+      EDC_FLYWAY_REPAIR: 'false'
+      EDC_DATASOURCE_DEFAULT_URL: jdbc:postgresql://postgresql:5432/broker
+      EDC_DATASOURCE_DEFAULT_USER: $POSTGRES_USER
+      EDC_DATASOURCE_DEFAULT_PASSWORD: $POSTGRES_PASSWORD
+
+      EDC_VAULT: /resources/vault.properties
+      EDC_KEYSTORE: /resources/keystore.jks
+      EDC_KEYSTORE_PASSWORD: $KEYSTORE_PASSWORD
+
+      EDC_OAUTH_CERTIFICATE_ALIAS: $KEYSTORE_CERTIFICATE
+      EDC_OAUTH_PRIVATE_KEY_ALIAS: $KEYSTORE_PRIVATE_KEY
+      EDC_OAUTH_CLIENT_ID: $BROKER_CLIENT_ID
+      EDC_OAUTH_TOKEN_URL: http://daps:4567/token
+      EDC_OAUTH_PROVIDER_JWKS_URL: http://daps:4567/jwks.json
+      EDC_OAUTH_PROVIDER_AUDIENCE: idsc:IDS_CONNECTORS_ALL
+
+      EDC_CATALOG_CACHE_EXECUTION_DELAY_SECONDS: $BROKER_DELAY_SECONDS
+      EDC_CATALOG_CACHE_EXECUTION_PERIOD_SECONDS: $BROKER_PERIOD_SECONDS
+      EDC_CATALOG_CACHE_PARTITION_NUM_CRAWLERS: $BROKER_NUM_CRAWLERS
+    volumes:
+      - ./resources/broker:/resources
+
+  connector_1:
+    image: ghcr.io/ids-basecamp/connector:v1.0.3-basecamp
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      daps:
+        condition: service_started
+      broker:
+        condition: service_started
+      clearing_house_edc:
+        condition: service_started
+    environment:
+      WEB_HTTP_PORT: 9191
+      WEB_HTTP_PATH: /api
+      WEB_HTTP_MANAGEMENT_PORT: 9192
+      WEB_HTTP_MANAGEMENT_PATH: /api/v1/management
+      WEB_HTTP_DATA_PORT: 9292
+      WEB_HTTP_DATA_PATH: /api/v1/data
+      WEB_HTTP_IDS_PORT: 9293
+      WEB_HTTP_IDS_PATH: /api/v1/ids
+      IDS_WEBHOOK_ADDRESS: http://connector_1:9293
+
+      EDC_API_AUTH_KEY: $API_AUTH_KEY
+
+      EDC_HOSTNAME: connector_1:9293
+      EDC_IDS_ID: urn:connector:ids-basecamp-demo-connector-1
+      EDC_IDS_CURATOR: http://ids-basecamp.local
+      EDC_IDS_MAINTAINER: http://ids-basecamp.local
+      EDC_CONNECTOR_NAME: ids-basecamp-demo-connector-1
+
+      EDC_KEYSTORE: /resources/keystore.jks
+      EDC_KEYSTORE_PASSWORD: $KEYSTORE_PASSWORD
+      EDC_VAULT: /resources/vault.properties
+
+      EDC_OAUTH_CERTIFICATE_ALIAS: $KEYSTORE_CERTIFICATE
+      EDC_OAUTH_PRIVATE_KEY_ALIAS: $KEYSTORE_PRIVATE_KEY
+      EDC_OAUTH_CLIENT_ID: $CONNECTOR_1_CLIENT_ID
+      EDC_OAUTH_TOKEN_URL: http://daps:4567/token
+      EDC_OAUTH_PROVIDER_JWKS_URL: http://daps:4567/jwks.json
+      EDC_OAUTH_PROVIDER_AUDIENCE: idsc:IDS_CONNECTORS_ALL
+
+      EDC_DATASOURCE_DEFAULT_NAME: default
+      EDC_DATASOURCE_DEFAULT_URL: jdbc:postgresql://postgresql:5432/connector_1
+      EDC_DATASOURCE_DEFAULT_USER: $POSTGRES_USER
+      EDC_DATASOURCE_DEFAULT_PASSWORD: $POSTGRES_PASSWORD
+
+      EDC_DATASOURCE_DATAPLANEINSTANCE_NAME: dataplaneinstance
+      EDC_DATASOURCE_DATAPLANEINSTANCE_URL: jdbc:postgresql://postgresql:5432/connector_1
+      EDC_DATASOURCE_DATAPLANEINSTANCE_USER: $POSTGRES_USER
+      EDC_DATASOURCE_DATAPLANEINSTANCE_PASSWORD: $POSTGRES_PASSWORD
+
+      EDC_DATASOURCE_ASSET_NAME: asset
+      EDC_DATASOURCE_ASSET_URL: jdbc:postgresql://postgresql:5432/connector_1
+      EDC_DATASOURCE_ASSET_USER: $POSTGRES_USER
+      EDC_DATASOURCE_ASSET_PASSWORD: $POSTGRES_PASSWORD
+
+      EDC_DATASOURCE_CONTRACTDEFINITION_NAME: contractdefinition
+      EDC_DATASOURCE_CONTRACTDEFINITION_URL: jdbc:postgresql://postgresql:5432/connector_1
+      EDC_DATASOURCE_CONTRACTDEFINITION_USER: $POSTGRES_USER
+      EDC_DATASOURCE_CONTRACTDEFINITION_PASSWORD: $POSTGRES_PASSWORD
+
+      EDC_DATASOURCE_CONTRACTNEGOTIATION_NAME: contractnegotiation
+      EDC_DATASOURCE_CONTRACTNEGOTIATION_URL: jdbc:postgresql://postgresql:5432/connector_1
+      EDC_DATASOURCE_CONTRACTNEGOTIATION_USER: $POSTGRES_USER
+      EDC_DATASOURCE_CONTRACTNEGOTIATION_PASSWORD: $POSTGRES_PASSWORD
+
+      EDC_DATASOURCE_POLICY_NAME: policy
+      EDC_DATASOURCE_POLICY_URL: jdbc:postgresql://postgresql:5432/connector_1
+      EDC_DATASOURCE_POLICY_USER: $POSTGRES_USER
+      EDC_DATASOURCE_POLICY_PASSWORD: $POSTGRES_PASSWORD
+
+      EDC_DATASOURCE_TRANSFERPROCESS_NAME: transferprocess
+      EDC_DATASOURCE_TRANSFERPROCESS_URL: jdbc:postgresql://postgresql:5432/connector_1
+      EDC_DATASOURCE_TRANSFERPROCESS_USER: $POSTGRES_USER
+      EDC_DATASOURCE_TRANSFERPROCESS_PASSWORD: $POSTGRES_PASSWORD
+
+      EDC_CLEARINGHOUSE_LOG_URL: http://clearing_house_edc:9191
+      BROKER_CLIENT_EXTENSION_ENABLED: "true"
+      EDC_BROKER_BASE_URL: http://broker:9192
+    volumes:
+      - ./resources/connector-1:/resources
+    ports:
+      - "$CONNECTOR_1_MANAGEMENT_PORT:9192"
+      - "$CONNECTOR_1_IDS_PORT:9293"
+
+  connector_2:
+    image: ghcr.io/ids-basecamp/connector:v1.0.3-basecamp
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      daps:
+        condition: service_started
+      broker:
+        condition: service_started
+      clearing_house_edc:
+        condition: service_started
+    environment:
+      WEB_HTTP_PORT: 9191
+      WEB_HTTP_PATH: /api
+      WEB_HTTP_MANAGEMENT_PORT: 9192
+      WEB_HTTP_MANAGEMENT_PATH: /api/v1/management
+      WEB_HTTP_DATA_PORT: 9292
+      WEB_HTTP_DATA_PATH: /api/v1/data
+      WEB_HTTP_IDS_PORT: 9293
+      WEB_HTTP_IDS_PATH: /api/v1/ids
+      IDS_WEBHOOK_ADDRESS: http://connector_2:9293
+
+      EDC_API_AUTH_KEY: $API_AUTH_KEY
+
+      EDC_HOSTNAME: connector_2:9293
+      EDC_IDS_ID: urn:connector:ids-basecamp-demo-connector-2
+      EDC_IDS_CURATOR: http://ids-basecamp.local
+      EDC_IDS_MAINTAINER: http://ids-basecamp.local
+      EDC_CONNECTOR_NAME: ids-basecamp-demo-connector-2
+
+      EDC_KEYSTORE: /resources/keystore.jks
+      EDC_KEYSTORE_PASSWORD: $KEYSTORE_PASSWORD
+      EDC_VAULT: /resources/vault.properties
+
+      EDC_OAUTH_CERTIFICATE_ALIAS: $KEYSTORE_CERTIFICATE
+      EDC_OAUTH_PRIVATE_KEY_ALIAS: $KEYSTORE_PRIVATE_KEY
+      EDC_OAUTH_CLIENT_ID: $CONNECTOR_2_CLIENT_ID
+      EDC_OAUTH_TOKEN_URL: http://daps:4567/token
+      EDC_OAUTH_PROVIDER_JWKS_URL: http://daps:4567/jwks.json
+      EDC_OAUTH_PROVIDER_AUDIENCE: idsc:IDS_CONNECTORS_ALL
+
+      EDC_DATASOURCE_DEFAULT_NAME: default
+      EDC_DATASOURCE_DEFAULT_URL: jdbc:postgresql://postgresql:5432/connector_2
+      EDC_DATASOURCE_DEFAULT_USER: $POSTGRES_USER
+      EDC_DATASOURCE_DEFAULT_PASSWORD: $POSTGRES_PASSWORD
+
+      EDC_DATASOURCE_DATAPLANEINSTANCE_NAME: dataplaneinstance
+      EDC_DATASOURCE_DATAPLANEINSTANCE_URL: jdbc:postgresql://postgresql:5432/connector_2
+      EDC_DATASOURCE_DATAPLANEINSTANCE_USER: $POSTGRES_USER
+      EDC_DATASOURCE_DATAPLANEINSTANCE_PASSWORD: $POSTGRES_PASSWORD
+
+      EDC_DATASOURCE_ASSET_NAME: asset
+      EDC_DATASOURCE_ASSET_URL: jdbc:postgresql://postgresql:5432/connector_2
+      EDC_DATASOURCE_ASSET_USER: $POSTGRES_USER
+      EDC_DATASOURCE_ASSET_PASSWORD: $POSTGRES_PASSWORD
+
+      EDC_DATASOURCE_CONTRACTDEFINITION_NAME: contractdefinition
+      EDC_DATASOURCE_CONTRACTDEFINITION_URL: jdbc:postgresql://postgresql:5432/connector_2
+      EDC_DATASOURCE_CONTRACTDEFINITION_USER: $POSTGRES_USER
+      EDC_DATASOURCE_CONTRACTDEFINITION_PASSWORD: $POSTGRES_PASSWORD
+
+      EDC_DATASOURCE_CONTRACTNEGOTIATION_NAME: contractnegotiation
+      EDC_DATASOURCE_CONTRACTNEGOTIATION_URL: jdbc:postgresql://postgresql:5432/connector_2
+      EDC_DATASOURCE_CONTRACTNEGOTIATION_USER: $POSTGRES_USER
+      EDC_DATASOURCE_CONTRACTNEGOTIATION_PASSWORD: $POSTGRES_PASSWORD
+
+      EDC_DATASOURCE_POLICY_NAME: policy
+      EDC_DATASOURCE_POLICY_URL: jdbc:postgresql://postgresql:5432/connector_2
+      EDC_DATASOURCE_POLICY_USER: $POSTGRES_USER
+      EDC_DATASOURCE_POLICY_PASSWORD: $POSTGRES_PASSWORD
+
+      EDC_DATASOURCE_TRANSFERPROCESS_NAME: transferprocess
+      EDC_DATASOURCE_TRANSFERPROCESS_URL: jdbc:postgresql://postgresql:5432/connector_2
+      EDC_DATASOURCE_TRANSFERPROCESS_USER: $POSTGRES_USER
+      EDC_DATASOURCE_TRANSFERPROCESS_PASSWORD: $POSTGRES_PASSWORD
+
+      EDC_CLEARINGHOUSE_LOG_URL: http://clearing_house_edc:9191
+      BROKER_CLIENT_EXTENSION_ENABLED: "true"
+      EDC_BROKER_BASE_URL: http://broker:9192
+    volumes:
+      - ./resources/connector-2:/resources
+    ports:
+      - "$CONNECTOR_2_MANAGEMENT_PORT:9192"
+      - "$CONNECTOR_2_IDS_PORT:9293"

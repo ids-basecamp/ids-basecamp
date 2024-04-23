@@ -1,0 +1,72 @@
+- client_id: 75:C4:F1:4D:C6:AB:E1:2E:B8:FC:26:36:A8:BB:83:7A:73:C3:BB:D1:ED:E4:34:5F:91:4B:50:8C:32:9D:25:DC:76:A4:13:53:21:FE:ED:C0
+  client_name: connector-1.demo.ids-basecamp.local
+  grant_types: client_credentials
+  token_endpoint_auth_method: private_key_jwt
+  scope: idsc:IDS_CONNECTOR_ATTRIBUTES_ALL
+  attributes:
+    - key: idsc
+      value: IDS_CONNECTOR_ATTRIBUTES_ALL
+    - key: securityProfile
+      value: idsc:BASE_SECURITY_PROFILE
+    - key: referringConnector
+      value: http://connector-1.demo.ids-basecamp.local
+    - key: "@type"
+      value: ids:DatPayload
+    - key: "@context"
+      value: https://w3id.org/idsa/contexts/context.jsonld
+    - key: transportCertsSha256
+      value: 282a26e12336a4e0c012ce31e82b9689022647b7f1dbe4d6c7fec739d502b7ec
+- client_id: 1A:79:F6:EB:08:C8:97:01:6C:89:73:24:FE:21:CC:FA:5E:15:67:3E:ED:E4:34:5F:91:4B:50:8C:32:9D:25:DC:76:A4:13:53:21:FE:ED:C0
+  client_name: connector-2.demo.ids-basecamp.local
+  grant_types: client_credentials
+  token_endpoint_auth_method: private_key_jwt
+  scope: idsc:IDS_CONNECTOR_ATTRIBUTES_ALL
+  attributes:
+    - key: idsc
+      value: IDS_CONNECTOR_ATTRIBUTES_ALL
+    - key: securityProfile
+      value: idsc:BASE_SECURITY_PROFILE
+    - key: referringConnector
+      value: http://connector-2.demo.ids-basecamp.local
+    - key: "@type"
+      value: ids:DatPayload
+    - key: "@context"
+      value: https://w3id.org/idsa/contexts/context.jsonld
+    - key: transportCertsSha256
+      value: aa94057cfdc1fe41f2fc6ca6a0d3d46d025e9c63bf14c8e1a4a7b6456865e163
+- client_id: C1:9F:78:EB:E9:CF:49:25:38:39:5D:1E:AA:15:21:0F:87:1B:49:6A:ED:E4:34:5F:91:4B:50:8C:32:9D:25:DC:76:A4:13:53:21:FE:ED:C0
+  client_name: broker.demo.ids-basecamp.local
+  grant_types: client_credentials
+  token_endpoint_auth_method: private_key_jwt
+  scope: idsc:IDS_CONNECTOR_ATTRIBUTES_ALL
+  attributes:
+    - key: idsc
+      value: IDS_CONNECTOR_ATTRIBUTES_ALL
+    - key: securityProfile
+      value: idsc:BASE_SECURITY_PROFILE
+    - key: referringConnector
+      value: http://broker.demo.ids-basecamp.local
+    - key: "@type"
+      value: ids:DatPayload
+    - key: "@context"
+      value: https://w3id.org/idsa/contexts/context.jsonld
+    - key: transportCertsSha256
+      value: 2b5993428cf40bb7b518d46a8bbcb624b43f8403b26c8c5ad9bffd465a7d741d
+- client_id: E4:3D:A8:54:F3:74:E4:6F:8B:16:7E:F4:89:80:2E:0B:21:D6:05:AF:ED:E4:34:5F:91:4B:50:8C:32:9D:25:DC:76:A4:13:53:21:FE:ED:C0
+  client_name: clearing-house-edc.demo.ids-basecamp.local
+  grant_types: client_credentials
+  token_endpoint_auth_method: private_key_jwt
+  scope: idsc:IDS_CONNECTOR_ATTRIBUTES_ALL
+  attributes:
+    - key: idsc
+      value: IDS_CONNECTOR_ATTRIBUTES_ALL
+    - key: securityProfile
+      value: idsc:BASE_SECURITY_PROFILE
+    - key: referringConnector
+      value: http://clearing-house-edc.demo.ids-basecamp.local
+    - key: "@type"
+      value: ids:DatPayload
+    - key: "@context"
+      value: https://w3id.org/idsa/contexts/context.jsonld
+    - key: transportCertsSha256
+      value: cf8f288e53dd641d8619ea13df31c1626355e360497eb99cf8cc98f2050b08dd
