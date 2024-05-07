@@ -19,11 +19,11 @@
 
 - To start the environment run the code below:
 
-> docker-compose -p ids-basecamp up -d
+> docker compose -p ids-basecamp up -d
 
 - To shutdown the environment run the code below:
 
-> docker-compose down
+> docker compose down
 
 ## About the containers
 

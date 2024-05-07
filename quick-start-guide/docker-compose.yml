@@ -27,7 +27,7 @@ services:
       - ./resources/daps/keys:/opt/keys
 
   clearing_house_app:
-    image: ghcr.io/ids-basecamp/clearinghouse/ch-app:1.0.0-beta.4
+    image: ghcr.io/ids-basecamp/clearinghouse/ch-app:1.0.0-beta.5
     depends_on:
         postgresql:
           condition: service_healthy
@@ -42,7 +42,7 @@ services:
       - ./resources/clearing-house-app/private_key.der:/app/keys/private_key.der
 
   clearing_house_edc:
-    image: ghcr.io/ids-basecamp/clearinghouse/ch-edc:1.0.0-beta.4
+    image: ghcr.io/ids-basecamp/clearinghouse/ch-edc:1.0.0-beta.5
     depends_on:
       clearing_house_app:
         condition: service_started
@@ -72,7 +72,7 @@ services:
       - ./resources/clearing-house-edc:/resources
 
   broker:
-    image: ghcr.io/ids-basecamp/broker:v1.0.2-basecamp
+    image: ghcr.io/ids-basecamp/broker:v1.0.3-basecamp
     depends_on:
       postgresql:
         condition: service_healthy
@@ -95,6 +95,7 @@ services:
       EDC_DATASOURCE_DEFAULT_URL: jdbc:postgresql://postgresql:5432/broker
       EDC_DATASOURCE_DEFAULT_USER: $POSTGRES_USER
       EDC_DATASOURCE_DEFAULT_PASSWORD: $POSTGRES_PASSWORD
+      EDC_SQL_FETCH_SIZE: $BROKER_SQL_FETCH_SIZE
 
       EDC_VAULT: /resources/vault.properties
       EDC_KEYSTORE: /resources/keystore.jks
@@ -114,7 +115,7 @@ services:
       - ./resources/broker:/resources
 
   connector_1:
-    image: ghcr.io/ids-basecamp/connector:v1.0.3-basecamp
+    image: ghcr.io/ids-basecamp/connector:v1.0.4-basecamp
     depends_on:
       postgresql:
         condition: service_healthy
@@ -158,6 +159,7 @@ services:
       EDC_DATASOURCE_DEFAULT_URL: jdbc:postgresql://postgresql:5432/connector_1
       EDC_DATASOURCE_DEFAULT_USER: $POSTGRES_USER
       EDC_DATASOURCE_DEFAULT_PASSWORD: $POSTGRES_PASSWORD
+      EDC_SQL_FETCH_SIZE: $CONNECTOR_1_SQL_FETCH_SIZE
 
       EDC_DATASOURCE_DATAPLANEINSTANCE_NAME: dataplaneinstance
       EDC_DATASOURCE_DATAPLANEINSTANCE_URL: jdbc:postgresql://postgresql:5432/connector_1
@@ -199,7 +201,7 @@ services:
       - "$CONNECTOR_1_IDS_PORT:9293"
 
   connector_2:
-    image: ghcr.io/ids-basecamp/connector:v1.0.3-basecamp
+    image: ghcr.io/ids-basecamp/connector:v1.0.4-basecamp
     depends_on:
       postgresql:
         condition: service_healthy
@@ -243,6 +245,7 @@ services:
       EDC_DATASOURCE_DEFAULT_URL: jdbc:postgresql://postgresql:5432/connector_2
       EDC_DATASOURCE_DEFAULT_USER: $POSTGRES_USER
       EDC_DATASOURCE_DEFAULT_PASSWORD: $POSTGRES_PASSWORD
+      EDC_SQL_FETCH_SIZE: $CONNECTOR_2_SQL_FETCH_SIZE
 
       EDC_DATASOURCE_DATAPLANEINSTANCE_NAME: dataplaneinstance
       EDC_DATASOURCE_DATAPLANEINSTANCE_URL: jdbc:postgresql://postgresql:5432/connector_2
